@@ -17,14 +17,11 @@ class EntityEncoder(nn.Module):
         self.dropout = nn.Dropout(dropout_input)
         init.xavier_normal_(self.gcn_w.weight)
         init.constant_(self.gcn_b, 0)
-        # mask层
         self.pad_tensor = torch.tensor([self.pad_idx], requires_grad=False).to(device)
 
         if use_pretrain:
             logging.info('LOADING KB EMBEDDINGS')
-            # 直接加载已有的知识嵌入向量权重
             self.symbol_emb.weight.data.copy_(torch.from_numpy(embed))
-            # 如果不需要finetune，关闭symbol_emb的梯度即可
             if not finetune:
                 logging.info('FIX KB EMBEDDING')
                 self.symbol_emb.weight.requires_grad = False
@@ -48,42 +45,6 @@ class EntityEncoder(nn.Module):
         out = torch.sum(out, dim=1)
         out = out / num_neighbors
         return out.tanh()
-
-    # def neighbor_encoder_soft_select(self, connections_left, connections_right, head_left, head_right):
-    #     """
-    #     :param connections_left: [b, max, 2]
-    #     :param connections_right:
-    #     :param head_left:
-    #     :param head_right:
-    #     :return:
-    #     """
-    #     # connections_left: [fewnum,maxneighbor,2] head_left/tail_left: [fewnum,maxneighbor]
-    #     # relations: head, entities:tail
-    #     head_ent_left = connections_left[:, :, 0].squeeze(-1)
-    #     tail_ent_left = connections_left[:, :, 1].squeeze(-1)
-    #     # head_embeds_left,pad_matrix_left: [fewnum,maxneighbor,100]
-    #     head_embeds_left = self.dropout(self.symbol_emb(head_ent_left))  # [b, max, dim]
-    #     tail_embeds_left = self.dropout(self.symbol_emb(tail_ent_left))
-    #     # pad_tensor:全部为69126填充的一个等大矩阵
-    #     pad_matrix_left = self.pad_tensor.expand_as(head_ent_left)
-    #     # 对两个张量Tensor进行逐元素的比较，若相同位置的两个元素相同，则返回True；若不同，返回False。
-    #     # 相同的元素即，无邻居结点的地方为True
-    #     mask_matrix_left = torch.eq(head_ent_left, pad_matrix_left).squeeze(-1)  # [b, max]
-    #
-    #     # 对尾实体进行同样的处理
-    #     head_ent_right = connections_right[:, :, 0].squeeze(-1)
-    #     tail_ent_right = connections_right[:, :, 1].squeeze(-1)
-    #     head_embeds_right = self.dropout(self.symbol_emb(head_ent_right))  # (batch, 200, embed_dim)
-    #     tail_embeds_right = self.dropout(self.symbol_emb(tail_ent_right))  # (batch, 200, embed_dim)
-    #     pad_matrix_right = self.pad_tensor.expand_as(head_ent_right)
-    #     mask_matrix_right = torch.eq(head_ent_right, pad_matrix_right).squeeze(-1)  # [b, max]
-    #
-    #     left = [head_ent_left, head_embeds_left, tail_embeds_left]
-    #     right = [head_ent_right, head_embeds_right, tail_embeds_right]
-    #     # 实现邻居聚合
-    #     output = self.NeighborAggregator(left, right, mask_matrix_left, mask_matrix_right)
-    #
-    #     return output
 
     def neighbor_encoder_soft_select(self, connections_left, connections_right, head_left, head_right):
         """
@@ -121,14 +82,12 @@ class EntityEncoder(nn.Module):
          return: (batch_size, )
          '''
         if entity_meta is not None:
-            # 将entity转换为嵌入[head,tail]
             entity = self.symbol_emb(entity)
             entity_left_connections, entity_left_degrees, entity_right_connections, entity_right_degrees = entity_meta
-            # 拆分头尾实体
+
             entity_left, entity_right = torch.split(entity, 1, dim=1)
             entity_left = entity_left.squeeze(1)
             entity_right = entity_right.squeeze(1)
-            # 邻居聚合操作
             entity_left, entity_right = self.neighbor_encoder_soft_select(entity_left_connections,
                                                                           entity_right_connections,
                                                                           entity_left, entity_right)
@@ -149,8 +108,6 @@ class RelationRepresentation(nn.Module):
                                                   num_layers=num_transformer_layers, max_seq_len=3,
                                                   with_pos=True)
 
-    # RelationRepresentation(support_r[0], support_r[1])
-    # support_r：[fewnum,2,dim], head and tail embedding after neighborhood aggregated
     def forward(self, left, right):
         """
         forward
@@ -158,6 +115,7 @@ class RelationRepresentation(nn.Module):
         :param right: [batch, dim]
         :return: [batch, dim]
         """
+
         relation = self.RelationEncoder(left, right)
         return relation
 
@@ -169,12 +127,11 @@ class Matcher(nn.Module):
                  device=torch.device("cpu")
                  ):
         super(Matcher, self).__init__()
-
         self.EntityEncoder = EntityEncoder(embed_dim, num_symbols,
                                            use_pretrain=use_pretrain,
                                            embed=embed, dropout_input=dropout_input,
                                            dropout_neighbors=dropout_neighbors,
-                                           finetune=finetune, device=torch.device("cpu"))
+                                           finetune=finetune, device=device)
         self.RelationRepresentation = RelationRepresentation(emb_dim=embed_dim,
                                                              num_transformer_layers=num_transformer_layers,
                                                              num_transformer_heads=num_transformer_heads,
@@ -193,7 +150,6 @@ class Matcher(nn.Module):
         :return:
         """
         if not isEval:
-            #support_r: [2,fewnum,100]
             support_r = self.EntityEncoder(support, support_meta)
             query_r = self.EntityEncoder(query, query_meta)
             false_r = self.EntityEncoder(false, false_meta)
@@ -207,6 +163,7 @@ class Matcher(nn.Module):
             positive_score = torch.sum(query_r * center_q, dim=1)
             negative_score = torch.sum(false_r * center_f, dim=1)
         else:
+
             support_r = self.EntityEncoder(support, support_meta)
             query_r = self.EntityEncoder(query, query_meta)
 
@@ -216,5 +173,4 @@ class Matcher(nn.Module):
             center_q = self.Prototype(support_r, query_r)
             positive_score = torch.sum(query_r * center_q, dim=1)
             negative_score = None
-
         return positive_score, negative_score

@@ -6,7 +6,7 @@ import torch.nn.init as init
 import math
 from torch.autograd import Variable
 
-# 用于邻居聚合Neighorbor Aggregator
+
 class AttentionSelectContext(nn.Module):
     def __init__(self, dim, dropout=0.0):
         super(AttentionSelectContext, self).__init__()
@@ -18,14 +18,13 @@ class AttentionSelectContext(nn.Module):
 
     def intra_attention(self, head, rel, tail, mask):
         """
+
         :param head: [b, dim]
         :param rel: [b, max, dim]
-        :param tail: [b, dim]
+        :param tail:
         :param mask:
         :return:
         """
-        # Attention Weight: Bilinear -> softmax
-        # Weighted Output: attention weight * neighbor node
         head = head.unsqueeze(1).repeat(1, rel.size(1), 1)
         score = self.Bilinear(head, rel).squeeze(2)
 
@@ -35,8 +34,6 @@ class AttentionSelectContext(nn.Module):
         head = torch.bmm(att, tail).squeeze(1)
         return head
 
-    # forward(left, right, mask_matrix_left, mask_matrix_right)
-    # left = [head_left, head_embeds_left, tail_embeds_left]
     def forward(self, left, right, mask_left=None, mask_right=None):
         """
         :param left: (head, rel, tail)
@@ -45,14 +42,13 @@ class AttentionSelectContext(nn.Module):
         :param mask_left:
         :return:
         """
-        head_left, head_embeds_left, tail_embeds_left = left
-        head_right, head_embeds_right, tail_embeds_right = right
+        head_left, rel_left, tail_left = left
+        head_right, rel_right, tail_right = right
         weak_rel = head_right - head_left
 
-        # left/right: weighted neighor node(relevance)
-        left = self.intra_attention(weak_rel, head_embeds_left, tail_embeds_left, mask_left)
-        right = self.intra_attention(weak_rel, head_embeds_right, tail_embeds_right, mask_right)
-        # f(h)
+        left = self.intra_attention(weak_rel, rel_left, tail_left, mask_left)
+        right = self.intra_attention(weak_rel, rel_right, tail_right, mask_right)
+
         left = torch.relu(self.Linear_tail(left) + self.Linear_head(head_left))
         right = torch.relu(self.Linear_tail(right) + self.Linear_head(head_right))
 
@@ -169,8 +165,7 @@ class PositionalEncoding(nn.Module):
         :param seq_len: scalar
         :return: [batch, time, dim]
         """
-        # input_pos = torch.tensor([list(range(1, seq_len + 1)) for _ in range(batch_len)]).cuda()
-        input_pos = torch.tensor([list(range(1, seq_len + 1)) for _ in range(batch_len)])
+        input_pos = torch.tensor([list(range(1, seq_len + 1)) for _ in range(batch_len)]).cuda()
         return self.position_encoding(input_pos)
 
 
@@ -221,8 +216,7 @@ class EncoderLayer(nn.Module):
         output = self.feed_forward(context)
         return output, attention
 
-# 实例化为:class RelationRepresentation.RelationEncoder
-# Learn relational representations for entity pairs with neighborhood aggregated enhancement
+
 class TransformerEncoder(nn.Module):
     def __init__(self, model_dim=100, ffn_dim=800, num_heads=4, dropout=0.1, num_layers=6, max_seq_len=3,
                  with_pos=True):
