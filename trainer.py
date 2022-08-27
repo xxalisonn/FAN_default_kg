@@ -65,13 +65,13 @@ class Trainer(object):
 
         self.optim = optim.Adam(self.parameters, lr=self.lr, weight_decay=self.weight_decay)
         self.ent2id = json.load(open(self.dataset + '/ent2ids'))
-        self.rel2id = json.load(open(self.dataset + './task_rel2id.json'))
+        self.rel2id = json.load(open(self.dataset + '/task_rel2id.json'))
         self.id2ent = {value:key for key,value in self.ent2id.items()}
-        self.ent_dom = json.load(open(self.dataset+'./ent_dom.json'))
-        self.dom_ent = json.load(open(self.dataset + './dom_ent.json'))
-        self.rel2nn = json.load(open(self.dataset + './rel2nn.json'))
-        self.rel2dom_h = json.load(open(self.dataset + './rel2dom_h.json'))
-        self.rel2dom_t = json.load(open(self.dataset + './rel2dom_t.json'))
+        self.ent_dom = json.load(open(self.dataset+'/ent_dom.json'))
+        self.dom_ent = json.load(open(self.dataset + '/dom_ent.json'))
+        self.rel2nn = json.load(open(self.dataset + '/rel2nn.json'))
+        self.rel2dom_h = json.load(open(self.dataset + '/rel2dom_h.json'))
+        self.rel2dom_t = json.load(open(self.dataset + '/rel2dom_t.json'))
         self.num_ents = len(self.ent2id.keys())
 
         logging.info('BUILDING CONNECTION MATRIX')
