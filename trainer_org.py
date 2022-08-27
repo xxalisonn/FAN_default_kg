@@ -2,7 +2,7 @@ from collections import defaultdict
 from torch import optim
 from collections import deque
 from args import read_options
-from data_loader import *
+from data_loader_org import *
 from matcher import *
 from tensorboardX import SummaryWriter
 import os
