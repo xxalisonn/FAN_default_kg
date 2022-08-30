@@ -17,8 +17,8 @@ class Trainer(object):
         # 将args中设置的参数赋给Trainer
         for k, v in vars(arg).items():
             setattr(self, k, v)
-        # self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.device = torch.device("cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#         self.device = torch.device("cpu")
         self.meta = not self.no_meta
 
         # pre-train
@@ -51,7 +51,7 @@ class Trainer(object):
                                finetune=self.fine_tune,
                                num_transformer_layers=self.num_transformer_layers,
                                num_transformer_heads=self.num_transformer_heads,
-                               device=torch.device("cpu")
+                               device=self.device
                                )
 
         self.Matcher.to(self.device)
