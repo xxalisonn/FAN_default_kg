@@ -3,7 +3,7 @@ from torch import optim
 from collections import deque
 from args import read_options
 from data_loader import *
-from matcher import *
+from matcher_cpu import *
 from tensorboardX import SummaryWriter
 import os
 from tqdm import tqdm
