@@ -41,6 +41,7 @@ def read_options():
     parser.add_argument("--max_batches", default=300000, type=int)
     parser.add_argument("--weight_decay", default=0.0001, type=float)
     parser.add_argument("--grad_clip", default=5.0, type=float)
+    parser.add_argument("--aug_max_num",default=30,type=int)
 
     args = parser.parse_args()
     if not os.path.exists('models'):
