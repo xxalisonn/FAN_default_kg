@@ -64,7 +64,7 @@ class Trainer(object):
 
         self.optim = optim.Adam(self.parameters, lr=self.lr, weight_decay=self.weight_decay)
         self.ent2id = json.load(open(self.dataset + '/ent2ids'))
-        elf.task_aug = json.load(open(self.dataset+ '/task_aug_dic.json'))
+        self.task_aug = json.load(open(self.dataset+ '/task_aug_dic.json'))
         self.num_ents = len(self.ent2id.keys())
 
         logging.info('BUILDING CONNECTION MATRIX')
